@@ -16,22 +16,24 @@ const {
 
 const { asyncWrapper } = require("./asyncWrapper.js")
 
+const app = express()
+
 const dotenv = require("dotenv")
 dotenv.config();
 
 
-const secret = require("crypto").randomBytes(64).toString("hex");
+const secret = '795e7f4982353c677fb869b27cf8752e42925594c1762ee4370fa6cf591f29054e9525f93e1a38b74c7be3be3815e3109da59cf785346b652d51ba5fee49a0c0'
 
 const start = asyncWrapper(async () => {
     await connectDB();
     const pokeSchema = await getTypes();
     pokeModel = await populatePokemons(pokeSchema);
   
-    app.listen(port, (err) => {
+    app.listen(process.env.appServerPort, (err) => {
       if (err)
         throw new PokemonDbError(err)
       else
-        console.log(`Phew! Server is running on port: ${port}`);
+        console.log(`Phew! Server is running on port: ${process.env.appServerPort}`);
     })
   })
   start()
@@ -39,20 +41,20 @@ const start = asyncWrapper(async () => {
 
   const jwt = require("jsonwebtoken")
 
-  const auth = (req, res, next) => {
-    const token = req.header('auth-token')
-    if (!token) {
-      throw new PokemonBadRequest("Access denied")
-    }
-    try {
-      const verified = jwt.verify(token, secret) // nothing happens if token is valid
-      next()
-    } catch (err) {
-      throw new PokemonBadRequest("Invalid token")
-    }
+const auth = (req, res, next) => {
+  const token = req.header('auth-token')
+  if (!token) {
+    throw new PokemonBadRequest("Access denied")
   }
+  try {
+    const verified = jwt.verify(token, secret) // nothing happens if token is valid
+    next()
+  } catch (err) {
+    throw new PokemonBadRequest("Invalid token")
+  }
+}
 
-  app.use(auth) // Boom! All routes below this line are protected
+app.use(auth) // Boom! All routes below this line are protected
 app.get('/api/v1/pokemons', asyncWrapper(async (req, res) => {
   if (!req.query["count"])
     req.query["count"] = 10
