@@ -1,0 +1,23 @@
+POST http://localhost:5000/register
+Content-Type: application/json
+
+{
+  "username": "dennis",
+  "password": "gyorgy",
+  "email": "beep@boop.com"
+}
+
+###
+
+POST http://localhost:5000/login
+Content-Type: application/json
+
+{
+  "username": "dennis",
+  "password": "gyorgy"
+}
+
+###
+
+GET http://localhost:5000/api/v1/pokemon/77
+auth-token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2MzczMWZlMTJkZmQ4Y2I5YTg5YzcyMTIiLCJpYXQiOjE2Njg0ODkyMDB9.FQeYBnCkx_OIUK6EBuA7Naz0JO_PljTqt5DEnHbnz10
