@@ -4,6 +4,7 @@ const { connectDB } = require("./connectDB.js")
 const { populatePokemons } = require("./populatePokemons.js")
 const { getTypes } = require("./getTypes.js")
 const { handleErr } = require("./errorHandler.js")
+const tokenModel = require("./tokens.js")
 const {
   PokemonBadRequest,
   PokemonBadRequestMissingID,
@@ -28,6 +29,7 @@ const start = asyncWrapper(async () => {
     await connectDB();
     const pokeSchema = await getTypes();
     pokeModel = await populatePokemons(pokeSchema);
+
   
     app.listen(process.env.appServerPort, (err) => {
       if (err)
@@ -39,10 +41,11 @@ const start = asyncWrapper(async () => {
   start()
   app.use(express.json())
 
-  const jwt = require("jsonwebtoken")
+const jwt = require("jsonwebtoken")
 
 const auth = (req, res, next) => {
-  const token = req.header('auth-token')
+  const token = req.query["token"]
+  
   if (!token) {
     throw new PokemonBadRequest("Access denied")
   }
@@ -60,47 +63,103 @@ app.get('/api/v1/pokemons', asyncWrapper(async (req, res) => {
     req.query["count"] = 10
   if (!req.query["after"])
     req.query["after"] = 0
-  // try {
-  const docs = await pokeModel.find({})
+  
+  if (!req.query["token"])
+    throw new PokemonDbError("Access denied")
+  
+  const token = req.query["token"]
+  
+  const doc = await tokenModel.findOne({ token: token })
+
+  if (doc) {
+    const docs = await pokeModel.find({})
     .sort({ "id": 1 })
     .skip(req.query["after"])
     .limit(req.query["count"])
-  res.json(docs)
+    res.json(docs) }
+  else 
+    res.send("ACCESS DENIED. PLEASE LOGIN");
+  // try {
+  
   // } catch (err) { res.json(handleErr(err)) }
 }))
 
 app.get('/api/v1/pokemon/:id', asyncWrapper(async (req, res) => {
   // try {
-  const { id } = req.params
-  const docs = await pokeModel.find({ "id": id })
-  if (docs.length != 0) res.json(docs)
-  else res.json({ errMsg: "Pokemon not found" })
+  if (!req.query["token"])
+    throw new PokemonDbError("Access denied")
+  
+  const token = req.query["token"]
+
+  const doc = await tokenModel.findOne({ token: token })
+  
+  if (doc) {
+    const { id } = req.params
+    const docs = await pokeModel.find({ "id": id })
+    if (docs.length != 0) 
+      res.json(docs)
+    }
+  else {
+    res.send("ACCESS DENIED. PLEASE LOGIN");}
   // } catch (err) { res.json(handleErr(err)) }
 }))
 
 app.post('/api/v1/pokemon/', asyncWrapper(async (req, res) => {
-  // try {
-  if (!req.body.id) throw new PokemonBadRequestMissingID()
-  const poke = await pokeModel.find({ "id": req.body.id })
-  if (poke.length != 0) throw new PokemonDuplicateError()
-  const pokeDoc = await pokeModel.create(req.body)
-  res.json({
-    msg: "Added Successfully"
-  })
-  // } catch (err) { res.json(handleErr(err)) }
+  if (!req.query["token"])
+    throw new PokemonDbError("Access denied")
+  
+  const token = req.query["token"]
+
+  const doc = await tokenModel.findOne({ token: token })
+  if(doc) {
+    if (doc.admin) {
+      console.log(doc)
+    if (!req.body.id) throw new PokemonBadRequestMissingID()
+    const poke = await pokeModel.find({ "id": req.body.id })
+    if (poke.length != 0) throw new PokemonDuplicateError()
+    const pokeDoc = await pokeModel.create(req.body)
+    res.json({
+      msg: "Added Successfully"
+    })
+    }
+    else {
+      throw new Error("Sorry you must be an admin to perform this request")
+    }
+  }
+  else {
+    res.send("ACCESS DENIED. PLEASE LOGIN");
+  }
 }))
 
 app.delete('/api/v1/pokemon/:id', asyncWrapper(async (req, res) => {
-  // try {
-  const docs = await pokeModel.findOneAndRemove({ id: req.params.id })
+  if (!req.query["token"])
+    throw new PokemonDbError("Access denied")
+  
+  const token = req.query["token"]
+
+  const doc = await tokenModel.findOne({ token: token })
+
+  if(doc) {
+    if(doc.admin) {
+      const docs = await pokeModel.findOneAndRemove({ id: req.params.id })
   if (docs)
     res.json({
       msg: "Deleted Successfully"
     })
   else
-    // res.json({ errMsg: "Pokemon not found" })
     throw new PokemonNotFoundError("");
-  // } catch (err) { res.json(handleErr(err)) }
+  }
+  else {
+    throw new Error("Sorry you must be an admin to perform this request")
+  }
+    }
+    
+  else {
+    res.send("ACCESS DENIED. PLEASE LOGIN");
+  }
+ 
+  
+ 
 }))
 
 app.put('/api/v1/pokemon/:id', asyncWrapper(async (req, res) => {

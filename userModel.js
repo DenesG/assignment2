@@ -26,6 +26,15 @@ const schema = new mongoose.Schema({
     unique: true,
     trim: true,
     min: 3
+  },
+  admin: {
+    type: Boolean
+  },
+  token: {
+    type: String,
+  },
+  token_id: {
+    type: String,
   }
 })
 
