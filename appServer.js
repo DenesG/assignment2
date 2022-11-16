@@ -98,6 +98,9 @@ app.get('/api/v1/pokemon/:id', asyncWrapper(async (req, res) => {
     const docs = await pokeModel.find({ "id": id })
     if (docs.length != 0) 
       res.json(docs)
+      else{
+        throw new PokemonNotFoundError("");
+      }
     }
   else {
     res.send("ACCESS DENIED. PLEASE LOGIN");}
@@ -157,39 +160,58 @@ app.delete('/api/v1/pokemon/:id', asyncWrapper(async (req, res) => {
   else {
     res.send("ACCESS DENIED. PLEASE LOGIN");
   }
- 
-  
- 
 }))
 
 app.put('/api/v1/pokemon/:id', asyncWrapper(async (req, res) => {
-  // try {
-  const selection = { id: req.params.id }
-  const update = req.body
-  const options = {
-    new: true,
-    runValidators: true,
-    overwrite: true
+  if (!req.query["token"])
+    throw new PokemonDbError("Access denied")
+  
+  const token = req.query["token"]
+
+  const doc = await tokenModel.findOne({ token: token })
+  if(doc) {
+    if(doc.admin) {
+      const selection = { id: req.params.id }
+      const update = req.body
+      const options = {
+        new: true,
+        runValidators: true,
+        overwrite: true
+      }
+      const doc = await pokeModel.findOneAndUpdate(selection, update, options)
+  
+      if (doc) {
+        res.json({
+            msg: "Updated Successfully",
+            pokeInfo: doc})
+        } 
+      else {
+        throw new PokemonNotFoundError("");
+        }
+    }
+else {
+      throw new Error("Sorry you must be an admin to perform this request")
+    }
+    
   }
-  const doc = await pokeModel.findOneAndUpdate(selection, update, options)
-  // console.log(docs);
-  if (doc) {
-    res.json({
-      msg: "Updated Successfully",
-      pokeInfo: doc
-    })
-  } else {
-    // res.json({ msg: "Not found", })
-    throw new PokemonNotFoundError("");
+  else {
+    res.send("ACCESS DENIED. PLEASE LOGIN");
   }
-  // } catch (err) { res.json(handleErr(err)) }
+  
 }))
 
 app.patch('/api/v1/pokemon/:id', asyncWrapper(async (req, res) => {
-  // try {
-  const selection = { id: req.params.id }
-  const update = req.body
-  const options = {
+  if (!req.query["token"])
+    throw new PokemonDbError("Access denied")
+  
+  const token = req.query["token"]
+
+  const doc = await tokenModel.findOne({ token: token })
+  if(doc) {
+    if(doc.admin) {
+      const selection = { id: req.params.id }
+    const update = req.body
+    const options = {
     new: true,
     runValidators: true
   }
@@ -200,10 +222,20 @@ app.patch('/api/v1/pokemon/:id', asyncWrapper(async (req, res) => {
       pokeInfo: doc
     })
   } else {
-    // res.json({  msg: "Not found" })
+   
     throw new PokemonNotFoundError("");
   }
-  // } catch (err) { res.json(handleErr(err)) }
+    }
+    else {
+      throw new Error("Sorry you must be an admin to perform this request")
+    }
+    
+  }
+  else {
+    res.send("ACCESS DENIED. PLEASE LOGIN");
+  }
+  
+ 
 }))
 
 app.get("*", (req, res) => {
