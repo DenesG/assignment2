@@ -18,7 +18,13 @@ function Login() {
 
     return (
         <div>
-            <form onSubmit={handleSubmit}>
+            {user?.username ? (
+                <>
+                    <h1>Welcome {user.username} </h1>
+                    <Dashboard />
+                </>
+            ) : (
+                <form onSubmit={handleSubmit}>
             <span>Admin Log</span>
             <br />
             <input 
@@ -38,6 +44,7 @@ function Login() {
             </button>
 
             </form>
+            )}
         </div>
     )
 }
